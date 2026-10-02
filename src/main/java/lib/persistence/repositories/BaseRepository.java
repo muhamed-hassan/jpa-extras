@@ -95,9 +95,9 @@ public class BaseRepository<E> {
 		int firstElementIndex = pageIndex * pageSize;
 		
 		ArrayList<Object[]> rawData = (ArrayList<Object[]>) entityManager.createQuery(dataQuery, Object[].class)
-												.setFirstResult(firstElementIndex)
-												.setMaxResults(pageSize)
-												.getResultList();		
+																			.setFirstResult(firstElementIndex)
+																			.setMaxResults(pageSize)
+																			.getResultList();		
 		if (rawData.isEmpty()) {
 			throw new DataNotFoundException();
 		}
@@ -118,6 +118,22 @@ public class BaseRepository<E> {
 		page.setLastPage(isLastPage);
 		
 		return page;
+	}
+	
+	public ArrayList<E> findAll() {
+		
+		String dataQuery = "SELECT " + instanceName + " " +
+				           "FROM   " + entityName + " " + instanceName + " " +
+				           "ORDER BY " + instanceName + ".id ASC";
+		
+		ArrayList<E> entities = (ArrayList<E>) entityManager.createQuery(dataQuery, entityType)
+																.getResultList();		
+		
+		if (entities.isEmpty()) {
+			throw new DataNotFoundException();
+		}
+
+		return null;
 	}
 	
 	public <U> void updateById(int id, LinkedHashSet<String> pathsOfFields, U entityUpdateModel) {
