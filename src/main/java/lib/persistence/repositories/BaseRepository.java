@@ -52,7 +52,7 @@ public class BaseRepository<E> {
 			
 			entity = entityManager.createQuery(query, entityType)
 									.setParameter("idParam", id)
-									.getSingleResult();
+									.getSingleResult();			
 			
 		} catch (NoResultException e) {
 			throw new DataNotFoundException();
@@ -133,7 +133,7 @@ public class BaseRepository<E> {
 			throw new DataNotFoundException();
 		}
 
-		return null;
+		return entities;
 	}
 	
 	public <U> void updateById(int id, LinkedHashSet<String> pathsOfFields, U entityUpdateModel) {
