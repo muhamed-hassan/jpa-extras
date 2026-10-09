@@ -136,6 +136,24 @@ public class BaseRepository<E> {
 		return entities;
 	}
 	
+	public ArrayList<Object[]> findAll(LinkedHashSet<String> pathsOfFields) {
+		
+		String fields = exractNamesOfFields(pathsOfFields);
+		
+		String dataQuery = "SELECT " + fields + " " +
+				           "FROM   " + entityName + " " + instanceName + " " +
+				           "ORDER BY " + instanceName + ".id ASC";
+		
+		ArrayList<Object[]> rawData = (ArrayList<Object[]>) entityManager.createQuery(dataQuery, Object[].class)
+																			.getResultList();		
+		
+		if (rawData.isEmpty()) {
+			throw new DataNotFoundException();
+		}
+
+		return rawData;
+	}
+	
 	public <U> void updateById(int id, LinkedHashSet<String> pathsOfFields, U entityUpdateModel) {
 		
 		String columnsToBeModified = "";
