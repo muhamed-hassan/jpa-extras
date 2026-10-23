@@ -1,6 +1,7 @@
 package lib.persistence.repositories;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -23,17 +24,11 @@ public class BaseRepository<E> {
 	@Value("${page.size}")	
 	protected int pageSize;
 	
-	private Class<E> entityType; // Example: Class<Customer>
+	private String instanceNameOfUsedEntity; // Example: customer
 	
-	private String entityName; // Example: Customer
-	
-	private String instanceName; // Example: customer
-	
-	protected BaseRepository(Class<E> entityType) {
+	public BaseRepository() {
 		
-		this.entityType = entityType;
-		entityName = entityType.getSimpleName();
-		instanceName = String.valueOf(entityName.charAt(0)).toLowerCase() + entityName.substring(1);
+		instanceNameOfUsedEntity = String.valueOf(getClassNameOfUsedEntity().charAt(0)).toLowerCase() + getClassNameOfUsedEntity().substring(1);
 	}
 	
 	public void save(E entity) {
@@ -43,14 +38,14 @@ public class BaseRepository<E> {
 	
 	public E findById(int id) {
 		
-		String query = "SELECT " + instanceName + " " + 
-					   "FROM   " + entityName + " " + instanceName + " " +
-					   "WHERE  " + instanceName + ".id = :idParam";
+		String query = "SELECT " + instanceNameOfUsedEntity + " " + 
+					   "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
+					   "WHERE  " + instanceNameOfUsedEntity + ".id = :idParam";
 
 		E entity;
 		try {
 			
-			entity = entityManager.createQuery(query, entityType)
+			entity = entityManager.createQuery(query, getClassOfUsedEntity())
 									.setParameter("idParam", id)
 									.getSingleResult();			
 			
@@ -66,8 +61,8 @@ public class BaseRepository<E> {
 		String fields = exractNamesOfFields(pathsOfFields);
 		
 		String query = "SELECT " + fields + " " +
-					   "FROM   " + entityName + " " + instanceName + " " +
-					   "WHERE  " + instanceName + ".id = :idParam";
+					   "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
+					   "WHERE  " + instanceNameOfUsedEntity + ".id = :idParam";
 		
 		Object[] rawRecord;
 		try {
@@ -88,8 +83,8 @@ public class BaseRepository<E> {
 		String fields = exractNamesOfFields(pathsOfFields);
 		
 		String dataQuery = "SELECT " + fields + " " +
-				           "FROM   " + entityName + " " + instanceName + " " +
-				           "ORDER BY " + instanceName + ".id ASC";
+				           "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
+				           "ORDER BY " + instanceNameOfUsedEntity + ".id ASC";
 		
 		// pageIndex is zero based => will be translated to the index of the first requested element later
 		int firstElementIndex = pageIndex * pageSize;
@@ -103,7 +98,7 @@ public class BaseRepository<E> {
 		}
 		
 		String countQuery = "SELECT COUNT(*) " + 
-							"FROM   " + entityName + " " + instanceName;
+							"FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity;
 		
 		long totalElements = entityManager.createQuery(countQuery, Long.class)
 											.getSingleResult();
@@ -122,11 +117,11 @@ public class BaseRepository<E> {
 	
 	public ArrayList<E> findAll() {
 		
-		String dataQuery = "SELECT " + instanceName + " " +
-				           "FROM   " + entityName + " " + instanceName + " " +
-				           "ORDER BY " + instanceName + ".id ASC";
+		String dataQuery = "SELECT " + instanceNameOfUsedEntity + " " +
+				           "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
+				           "ORDER BY " + instanceNameOfUsedEntity + ".id ASC";
 		
-		ArrayList<E> entities = (ArrayList<E>) entityManager.createQuery(dataQuery, entityType)
+		ArrayList<E> entities = (ArrayList<E>) entityManager.createQuery(dataQuery, getClassOfUsedEntity())
 																.getResultList();		
 		
 		if (entities.isEmpty()) {
@@ -141,8 +136,8 @@ public class BaseRepository<E> {
 		String fields = exractNamesOfFields(pathsOfFields);
 		
 		String dataQuery = "SELECT " + fields + " " +
-				           "FROM   " + entityName + " " + instanceName + " " +
-				           "ORDER BY " + instanceName + ".id ASC";
+				           "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
+				           "ORDER BY " + instanceNameOfUsedEntity + ".id ASC";
 		
 		ArrayList<Object[]> rawData = (ArrayList<Object[]>) entityManager.createQuery(dataQuery, Object[].class)
 																			.getResultList();		
@@ -174,9 +169,9 @@ public class BaseRepository<E> {
 			cursor++;
 		}
 		
-		String updateStatement = "UPDATE " + entityName + " " + instanceName + " " + 
+		String updateStatement = "UPDATE " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " + 
 								 "SET    " + columnsToBeModified + " " +
-								 "WHERE  " + instanceName + ".id = :idParam";
+								 "WHERE  " + instanceNameOfUsedEntity + ".id = :idParam";
 
 		Query query = entityManager.createQuery(updateStatement);
 		
@@ -200,8 +195,8 @@ public class BaseRepository<E> {
 	
 	public void deleteById(int id) {
 		
-		String deleteStatement = "DELETE FROM " + entityName + " " + instanceName + " " +
-				 				 "WHERE       " + instanceName + ".id = :idParam";
+		String deleteStatement = "DELETE FROM " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
+				 				 "WHERE       " + instanceNameOfUsedEntity + ".id = :idParam";
 
 		entityManager.createQuery(deleteStatement)
 						.setParameter("idParam", id)
@@ -209,6 +204,16 @@ public class BaseRepository<E> {
 	}
 	
 	/* ******************************************************************************************************************************* */
+	
+	private Class<E> getClassOfUsedEntity() {
+		
+		return (Class<E>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+	}
+	
+	private String getClassNameOfUsedEntity() {
+		
+		return getClassOfUsedEntity().getSimpleName();
+	}
 	
 	private String exractNamesOfFields(LinkedHashSet<String> pathsOfFields) {
 		
