@@ -7,14 +7,12 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
 import org.springframework.beans.factory.annotation.Value;
 
 import lib.persistence.entities.Page;
-import lib.persistence.repositories.exceptions.DataNotFoundException;
 
 public class BaseRepository<E> {
 	
@@ -42,16 +40,9 @@ public class BaseRepository<E> {
 					   "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
 					   "WHERE  " + instanceNameOfUsedEntity + ".id = :idParam";
 
-		E entity;
-		try {
-			
-			entity = entityManager.createQuery(query, getClassOfUsedEntity())
+		E entity = entityManager.createQuery(query, getClassOfUsedEntity())
 									.setParameter("idParam", id)
-									.getSingleResult();			
-			
-		} catch (NoResultException e) {
-			throw new DataNotFoundException();
-		}
+									.getSingleResult();	
 	
 		return entity;
 	}
@@ -64,16 +55,9 @@ public class BaseRepository<E> {
 					   "FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " +
 					   "WHERE  " + instanceNameOfUsedEntity + ".id = :idParam";
 		
-		Object[] rawRecord;
-		try {
-			
-			rawRecord = entityManager.createQuery(query, Object[].class)
-										.setParameter("idParam", id)
-										.getSingleResult();
-			
-		} catch (NoResultException e) {
-			throw new DataNotFoundException();
-		}
+		Object[] rawRecord = entityManager.createQuery(query, Object[].class)
+											.setParameter("idParam", id)
+											.getSingleResult();
 	
 		return rawRecord;
 	}
@@ -93,9 +77,6 @@ public class BaseRepository<E> {
 																			.setFirstResult(firstElementIndex)
 																			.setMaxResults(pageSize)
 																			.getResultList();		
-		if (rawData.isEmpty()) {
-			throw new DataNotFoundException();
-		}
 		
 		String countQuery = "SELECT COUNT(*) " + 
 							"FROM   " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity;
@@ -124,10 +105,6 @@ public class BaseRepository<E> {
 		ArrayList<E> entities = (ArrayList<E>) entityManager.createQuery(dataQuery, getClassOfUsedEntity())
 																.getResultList();		
 		
-		if (entities.isEmpty()) {
-			throw new DataNotFoundException();
-		}
-
 		return entities;
 	}
 	
@@ -142,10 +119,6 @@ public class BaseRepository<E> {
 		ArrayList<Object[]> rawData = (ArrayList<Object[]>) entityManager.createQuery(dataQuery, Object[].class)
 																			.getResultList();		
 		
-		if (rawData.isEmpty()) {
-			throw new DataNotFoundException();
-		}
-
 		return rawData;
 	}
 	
