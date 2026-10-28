@@ -1,6 +1,7 @@
 package lib.persistence.repositories;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -122,10 +123,11 @@ public class BaseRepository<E> {
 		return rawData;
 	}
 	
+	// assume the order of fields in both pathsOfFields and entityUpdateModel, so it'll give a match later in the form of (fieldName and fieldValue)
 	public <U> void updateById(int id, LinkedHashSet<String> pathsOfFields, U entityUpdateModel) {
 		
 		String columnsToBeModified = "";
-		int cursor = 0;
+		int cursor1 = 0;
 		Iterator<String> iterator = pathsOfFields.iterator();
 		while ( iterator.hasNext() ) {
 			
@@ -134,12 +136,12 @@ public class BaseRepository<E> {
 			
 			String columnToBeModified = pathOfField + " = :" + fieldName + "Param";
 			
-			if ( cursor < pathsOfFields.size() - 1  ) {
+			if ( cursor1 < pathsOfFields.size() - 1  ) {
 				columnToBeModified += ", ";
 			}
 			
 			columnsToBeModified += columnToBeModified;
-			cursor++;
+			cursor1++;
 		}
 		
 		String updateStatement = "UPDATE " + getClassNameOfUsedEntity() + " " + instanceNameOfUsedEntity + " " + 
@@ -147,20 +149,25 @@ public class BaseRepository<E> {
 								 "WHERE  " + instanceNameOfUsedEntity + ".id = :idParam";
 
 		Query query = entityManager.createQuery(updateStatement);
-		
-		Class<?> classOfUpdateModel = entityUpdateModel.getClass();
-		Field[] fieldsOfUpdateModel = classOfUpdateModel.getDeclaredFields();
-		for (int index = 0; index < fieldsOfUpdateModel.length; index++) {
 			
-            try {
-            	
-            	Field field = fieldsOfUpdateModel[index];
-                field.setAccessible(true); // grant access to private fields
-                                
-                query.setParameter(field.getName() + "Param", field.get(entityUpdateModel));
-
-            } catch (IllegalAccessException e) { }
-        }
+		try {
+			
+			Method[] functionsOfEntityUpdateModel = entityUpdateModel.getClass().getMethods();
+			for (int cursor2 = 0; cursor2 < functionsOfEntityUpdateModel.length; cursor2++) {
+				
+				String functionName = functionsOfEntityUpdateModel[cursor2].getName();
+				if (functionName.startsWith("get")) {
+					
+					String fieldName = functionName.substring(3);
+					fieldName = Character.toLowerCase(fieldName.charAt(0)) + fieldName.substring(1);
+					
+					Object retrievedValue = functionsOfEntityUpdateModel[cursor2].invoke(entityUpdateModel);
+					
+					query.setParameter(fieldName + "Param", retrievedValue);
+				}				
+			}
+		
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {}
 		
 		query.setParameter("idParam", id)
 				.executeUpdate();
