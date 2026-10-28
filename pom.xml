@@ -39,6 +39,7 @@
 				<executions>
 					<execution>
 						<id>attach-sources</id>
+						<phase>install</phase>
 					</execution>
 				</executions>
 			</plugin>
